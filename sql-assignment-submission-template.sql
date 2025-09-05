@@ -72,51 +72,85 @@ WHERE IllnessName = 'Insomnia' OR IllnessName = 'Cough';
 
 -- 7) Names of all employees who do not have a car (”No car” must be printed in an extra column. At least three different solutions are required). *
 
+SELECT Employee.EmpName, 'No Car' AS CarStatus
+FROM Employee
+LEFT JOIN Car ON Employee.EmployeeID = Car.EmployeeID
+WHERE Car.EmployeeID IS NULL;
 
+SELECT Employee.EmpName, 'No Car' AS CarStatus
+FROM Employee
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Car
+    WHERE Car.EmployeeID = Employee.EmployeeID
+);
+
+SELECT Employee.EmpName, 'No Car' AS CarStatus
+FROM Employee
+WHERE Employee.EmployeeID NOT IN (SELECT Car.EmployeeID FROM Car WHERE Car.EmployeeID IS NOT NULL);
 
 -- 8) License plate numbers of all cars for which there is no owner (”No owner!” must be printed in an extra column)
 
-
+SELECT Car.LicenseNo, 'No Owner!' AS CarStatus
+FROM Car
+WHERE Car.EmployeeID IS NULL;
 
 -- 9) Total salary cost for all employees.
 
-
+SELECT SUM(Employee.EmpSalary) AS 'Total Salary' FROM Employee;
 
 -- 10) Total salary cost for each employee if they would have had a 10 % increase in salary. *
 
-
+SELECT Employee.EmpName AS 'Name', Employee.EmpSalary AS 'CurrentSalar', Employee.EmpSalary * 1.1 AS SalaryWith10PercentIncrease
+FROM Employee;
 
 -- 11) Print the first letter of the names of all patients.
 
-
+SELECT SUBSTRING(Patient.PatientName, 1, 1) FROM Patient;
 
 -- 12) Names and current illnesses for every patient. If a patient is suffering from love sickness, “critical condition” must be printed in an extra column. *
 
-
+SELECT Patient.PatientName, Illness.IllnessName,
+CASE
+    WHEN Illness.IllnessName = 'Love Sickness' THEN 'Critical Condition'
+    ELSE ''
+END AS ConditionStatus
+FROM Patient
+JOIN Suffers ON Patient.PatientID = Suffers.PatientID
+JOIN Illness ON Suffers.IllnessID = Illness.IllnessID;
 
 -- 13) Who has the most expensive car? *
 
-
+SELECT Car.EmployeeID FROM Car
+WHERE Car.Price = (SELECT MAX(Car.Price) FROM Car);
 
 -- 14) Decrease the prices of all cars by 5 % (use UPDATE operation).
 
-
+UPDATE Car SET Car.Price = Car.Price * 0.95;
 
 -- 15) Remove the cheapest car.
 
-
+DELETE FROM Car WHERE (SELECT MIN(Car.Price) FROM Car) = Car.Price; 
+-- Detta tog bort tre, alla var lika billiga
 
 -- 16) Names of all employees working at the General Surgery unit.
 
-
+SELECT Employee.EmpName
+FROM Employee
+JOIN Unit ON Employee.UnitID = Unit.UnitID
+WHERE Unit.UnitName = 'General Surgery';
 
 -- 17) Names of all patients suffering from the same illness as PP4. *
 
-
+SELECT Patient.PatientName FROM Patient
+JOIN Suffers ON Patient.PatientID = Suffers.PatientID
+JOIN Illness ON Suffers.IllnessID = Illness.IllnessID
+WHERE Illness.IllnessID IN (SELECT Suffers.IllnessID FROM Suffers WHERE PatientID = (SELECT PatientID FROM Patient WHERE PatientNo = 'PP4'));
 
 -- 18) Number of patients that have suffered from love sickness.
 
-
+SELECT COUNT(*) FROM HasSuffered
+WHERE IllnessID = (SELECT IllnessID FROM Illness WHERE IllnessName = 'love sickness');
 
 -- 19) Names of all doctors examining the patient named Peter.
 
