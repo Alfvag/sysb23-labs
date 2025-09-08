@@ -154,91 +154,154 @@ WHERE IllnessID = (SELECT IllnessID FROM Illness WHERE IllnessName = 'love sickn
 
 -- 19) Names of all doctors examining the patient named Peter.
 
-
+SELECT Employee.EmpName FROM Employee
+JOIN Examines ON Employee.EmployeeID = Examines.EmployeeID
+JOIN Patient ON Examines.PatientID = Patient.PatientID
+WHERE Patient.PatientName= 'Peter';
 
 -- 20) Names of all employees who live in the same city as the employee named Hans.
 
-
+SELECT Employee.EmpName FROM Employee
+WHERE Employee.EmpAddress = (SELECT Employee.EmpAddress FROM Employee WHERE Employee.EmpName = 'Hans');
 
 -- 21) Names of all illnesses that more than one patient is suffering from. *
 
+SELECT Illness.IllnessName FROM Illness
+JOIN Suffers ON Illness.IllnessID = Suffers.IllnessID
+GROUP BY IllnessName HAVING COUNT(*) > 1;
 
 
 -- 22) Names of units with more than two patients. *
 
-
+SELECT Unit.UnitName FROM Unit
+JOIN Patient ON Unit.UnitID = Patient.UnitID
+GROUP BY Unit.UnitName HAVING COUNT(*) > 2;
 
 -- 23) Names of patients being treated in unit U3 or suffering from cough.
 
+SELECT Patient.PatientName FROM Patient
+JOIN Unit ON Patient.UnitID = Unit.UnitID
+WHERE Unit.UnitName = 'U3' OR Patient.PatientID IN (
+    SELECT Suffers.PatientID FROM Suffers
+    JOIN Illness ON Suffers.IllnessID = Illness.IllnessID
+    WHERE Illness.IllnessName = 'cough'
+);
 
 
 -- 24) PatientID for all patients who are suffering from exactly two illnesses.
 
-
+SELECT Patient.PatientID FROM Patient
+LEFT OUTER JOIN Suffers ON Patient.PatientID = Suffers.PatientID
+GROUP BY Patient.PatientID HAVING COUNT(Suffers.IllnessID) = 2;
 
 -- 25) Copy PatientID, phone number and name for all patients suffering from love sickness into a separate table and name that table ”LoveTable”. *
 
-
+SELECT Patient.PatientID, Patient.PatientPhoneNumber, Patient.PatientName INTO LoveTable
+FROM Patient
+JOIN Suffers ON Patient.PatientID = Suffers.PatientID
+JOIN Illness ON Suffers.IllnessID = Illness.IllnessID
+WHERE Illness.IllnessName = 'love sickness';
 
 -- 26) Set all employees’ salaries to 90% of the salary of employee E1.
 
-
+UPDATE Employee
+SET EmpSalary = (SELECT EmpSalary * 0.9 FROM Employee WHERE EmployeeID IN (SELECT EmployeeID FROM Employee WHERE EmpNo = 'E1'));
 
 -- 27) License number, brand and price for any cars belonging to employees examining patient PP1.
 
-
+SELECT Car.LicenseNo, Car.Brand, Car.Price FROM Car
+JOIN Employee ON Car.EmployeeID = Employee.EmployeeID
+JOIN Examines ON Employee.EmployeeID = Examines.EmployeeID
+JOIN Patient ON Examines.PatientID = Patient.PatientID
+WHERE Examines.PatientID IN (SELECT PatientID FROM Patient WHERE PatientNo = 'PP1');
 
 -- 28) Increase salary for all employees who are examining more than two patients by 10%. *
 
-
+UPDATE Employee
+SET EmpSalary = EmpSalary * 1.1
+ WHERE Employee.EmployeeID IN (
+    SELECT Employee.EmployeeID FROM Employee
+    JOIN Examines ON Employee.EmployeeID = Examines.EmployeeID
+    GROUP BY Employee.EmployeeID HAVING COUNT(Examines.PatientID) > 2);
 
 -- 29) Names of all employees whose salaries are above average.
 
-
+SELECT Employee.EmpName FROM Employee
+WHERE EmpSalary > (SELECT AVG(EmpSalary) FROM Employee);
 
 -- 30) Names of units that don’t have any employees. *
 
-
+SELECT Unit.UnitName FROM Unit
+WHERE Unit.UnitID NOT IN (SELECT DISTINCT UnitID FROM Employee);
 
 -- 31) Names of all patients who have not suffered from any illnesses previously.
 
-
+SELECT Patient.PatientName FROM Patient
+WHERE Patient.PatientID NOT IN (SELECT DISTINCT PatientID FROM HasSuffered);
 
 -- 32) Which patients have had love sickness for more than two months?
 
-
+SELECT Patient.PatientID FROM Patient
+WHERE Patient.PatientID IN (
+    SELECT Suffers.PatientID FROM Suffers
+    JOIN Illness ON Suffers.IllnessID = Illness.IllnessID
+    WHERE Illness.IllnessName = 'Love Sickness'
+    AND Suffers.StartDate < DATEADD(MONTH, -2, GETDATE())
+);
 
 -- 33) Names of all employees who are not examining patients (at least two solutions required). *
 
+SELECT Employee.EmpName FROM Employee
+WHERE Employee.EmployeeID NOT IN (SELECT DISTINCT EmployeeID FROM Examines);
 
+SELECT Employee.EmpName FROM Employee
+LEFT JOIN Examines ON Employee.EmployeeID = Examines.EmployeeID
+WHERE Examines.EmployeeID IS NULL;
 
 -- 34) Names and addresses of all employees and patients. *
 
-
+SELECT Employee.EmpName AS Name, Employee.EmpAddress AS Address FROM Employee
+UNION ALL
+SELECT Patient.PatientName, Patient.PatientAddress FROM Patient;
 
 -- 35) Names of all employees who are also patients. *
 
-
+SELECT Employee.EmpName FROM Employee
+JOIN Patient ON Employee.EmpPhoneNumber = Patient.PatientPhoneNumber;
 
 -- 36) Names of employees who are not also patients.
 
-
+SELECT Employee.EmpName FROM Employee
+WHERE Employee.EmpPhoneNumber NOT IN (SELECT Patient.PatientPhoneNumber FROM Patient);
 
 -- 37) Name of the patient that has suffered from any disease for the longest duration of time. *
 
-
+SELECT TOP 1 Patient.PatientName FROM Patient
+JOIN Suffers ON Patient.PatientID = Suffers.PatientID
+ORDER BY Suffers.StartDate ASC;
 
 -- 38) Names of patients who have all illnesses. *
 
-
+SELECT Patient.PatientName FROM Patient
+WHERE ((SELECT DISTINCT COUNT(Illness.IllnessID) FROM Illness) = 
+        (SELECT COUNT(Suffers.IllnessID) FROM Suffers WHERE Suffers.PatientID = Patient.PatientID));
 
 -- 39) Remove all patients in unit U2. *
 
+DELETE FROM Examines WHERE PatientID =
+(SELECT Patient.PatientID FROM Patient
+JOIN Unit ON Patient.UnitID = Unit.UnitID
+WHERE Unit.UnitNo = 'U2')
 
+DELETE FROM Patient WHERE PatientID =
+(SELECT Patient.PatientID FROM Patient
+JOIN Unit ON Patient.UnitID = Unit.UnitID
+WHERE Unit.UnitNo = 'U2');
 
 -- 40) Remove unit U2: svettigt!!
 
-
+UPDATE Employee SET UnitID = NULL WHERE UnitID = (SELECT UnitID FROM Unit WHERE UnitNo = 'U2');
+DELETE FROM Unit WHERE UnitNo = 'U2';
 
 -- ================================================
 -- End of Assignment
